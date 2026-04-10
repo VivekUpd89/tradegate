@@ -6,20 +6,58 @@ type TradingViewPayload = {
   secret?: string;
   token?: string;
   symbol?: string;
-  direction?: "Long" | "Short";
-  entry?: number;
-  stopLoss?: number;
-  target?: number;
+  ticker?: string;
+  direction?: "Long" | "Short" | string;
+  side?: "Long" | "Short" | string;
+  entry?: number | string;
+  stopLoss?: number | string;
+  stop_loss?: number | string;
+  target?: number | string;
+  targetPrice?: number | string;
   strategySlug?: string;
+  strategy_slug?: string;
   thesis?: string;
   marketContext?: string;
-  emotions?: string[];
-  confidence?: number;
+  market_context?: string;
+  emotions?: string[] | string;
+  confidence?: number | string;
 };
+
+function toNumber(value: number | string | undefined, fallback = 0) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function normalizeDirection(value?: string) {
+  const lower = value?.trim().toLowerCase();
+  if (lower === "short" || lower === "sell") return "Short";
+  return "Long";
+}
+
+function normalizeEmotions(value?: string[] | string) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return ["Calm"];
+}
 
 export async function POST(request: NextRequest) {
   const expectedSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;
-  const body = (await request.json()) as TradingViewPayload;
+
+  let body: TradingViewPayload;
+  try {
+    body = (await request.json()) as TradingViewPayload;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON payload" }, { status: 400 });
+  }
 
   if (expectedSecret && body.secret !== expectedSecret) {
     return NextResponse.json({ ok: false, error: "Invalid secret" }, { status: 401 });
@@ -67,24 +105,29 @@ export async function POST(request: NextRequest) {
       }))
     : strategies;
 
-  const strategy = strategyList.find((item) => item.slug === body.strategySlug) ?? strategyList[0];
+  const strategySlug = body.strategySlug ?? body.strategy_slug;
+  const strategy = strategyList.find((item) => item.slug === strategySlug) ?? strategyList[0];
+
+  const entry = toNumber(body.entry, 0);
+  const stopLoss = toNumber(body.stopLoss ?? body.stop_loss, entry);
+  const target = toNumber(body.target ?? body.targetPrice, entry);
 
   const input: ReviewInput = {
     strategyId: strategy.id,
-    symbol: body.symbol ?? "UNKNOWN",
-    direction: body.direction ?? "Long",
-    entry: Number(body.entry ?? 0),
-    stopLoss: Number(body.stopLoss ?? 0),
-    target: Number(body.target ?? 0),
+    symbol: body.symbol ?? body.ticker ?? "UNKNOWN",
+    direction: normalizeDirection(body.direction ?? body.side),
+    entry,
+    stopLoss,
+    target,
     thesis: body.thesis ?? "TradingView alert-triggered setup awaiting trader confirmation.",
-    marketContext: body.marketContext ?? "Imported from TradingView alert.",
-    emotions: body.emotions ?? ["Calm"],
-    confidence: Number(body.confidence ?? 50)
+    marketContext: body.marketContext ?? body.market_context ?? "Imported from TradingView alert.",
+    emotions: normalizeEmotions(body.emotions),
+    confidence: toNumber(body.confidence, 50)
   };
 
   const result = reviewTrade(input, strategyList);
 
-  await supabase.from("reviews").insert({
+  const { error: insertError } = await supabase.from("reviews").insert({
     user_id: profile.id,
     strategy_id: strategy.id,
     strategy_slug: strategy.slug,
@@ -111,6 +154,10 @@ export async function POST(request: NextRequest) {
     summary: result.summary,
     source: "tradingview-webhook"
   });
+
+  if (insertError) {
+    return NextResponse.json({ ok: false, error: `Failed to persist webhook review: ${insertError.message}` }, { status: 500 });
+  }
 
   return NextResponse.json({
     ok: true,

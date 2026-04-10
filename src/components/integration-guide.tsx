@@ -69,18 +69,18 @@ export function IntegrationGuide() {
 
   const webhookUrl = `${appUrl.replace(/\/$/, "")}/api/tradingview/webhook`;
   const samplePayload = `{
-  "secret": "${process.env.NEXT_PUBLIC_APP_URL ? "your-shared-secret" : "set-TRADINGVIEW_WEBHOOK_SECRET"}",
+  "secret": "your-shared-secret",
   "token": "${profile?.tradingview_webhook_token ?? "sign-in-to-see-token"}",
-  "symbol": "NIFTY",
+  "symbol": "{{ticker}}",
   "direction": "Long",
-  "entry": 22450,
-  "stopLoss": 22420,
-  "target": 22520,
+  "entry": "{{close}}",
+  "stopLoss": "{{close}}",
+  "target": "{{close}}",
   "strategySlug": "breakout-pullback",
-  "thesis": "Breakout alert fired after pullback hold.",
+  "thesis": "TradingView alert fired.",
   "marketContext": "Imported from TradingView alert.",
   "emotions": ["Calm"],
-  "confidence": 68
+  "confidence": 60
 }`;
 
   return (
@@ -157,9 +157,9 @@ export function IntegrationGuide() {
             <li>1. Sign in with your real email via magic link</li>
             <li>2. Open this page and copy your profile token</li>
             <li>3. Add the webhook URL and JSON payload in TradingView alert settings</li>
-            <li>4. Fire a test alert</li>
-            <li>5. Check the imported alert queue in the journal</li>
-            <li>6. Compare how manual review feels vs imported-review workflow</li>
+            <li>4. Keep the secret exactly equal to your configured `TRADINGVIEW_WEBHOOK_SECRET`</li>
+            <li>5. Fire a test alert</li>
+            <li>6. Check the imported alert queue in the journal</li>
           </ol>
         </div>
       </section>
