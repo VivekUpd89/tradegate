@@ -14,24 +14,12 @@ async function getSignedInUserId() {
   return data.user?.id ?? null;
 }
 
-async function loadReviews(userId: string | null): Promise<PersistedReview[]> {
-  const supabase = getSupabaseBrowserClient();
-  if (!supabase || !userId) return demoHistory;
-
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error || !data?.length) return demoHistory;
-  return data;
-}
-
 export function JournalDashboard() {
   const [reviews, setReviews] = useState<PersistedReview[]>(demoHistory);
   const [status, setStatus] = useState("Edit outcomes and notes to build actual behavior analytics.");
   const [userId, setUserId] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<"demo" | "supabase">("demo");
+  const [fetchMeta, setFetchMeta] = useState("Using demo history until a signed-in Supabase fetch succeeds.");
   const searchParams = useSearchParams();
   const sourceFilter = searchParams.get("source");
 
@@ -39,8 +27,45 @@ export function JournalDashboard() {
     async function boot() {
       const currentUserId = await getSignedInUserId();
       setUserId(currentUserId);
-      const loaded = await loadReviews(currentUserId);
-      setReviews(loaded);
+
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        setDataSource("demo");
+        setFetchMeta("Supabase browser client unavailable. Showing demo history.");
+        setReviews(demoHistory);
+        return;
+      }
+
+      if (!currentUserId) {
+        setDataSource("demo");
+        setFetchMeta("No signed-in user detected in the browser session. Showing demo history.");
+        setReviews(demoHistory);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setDataSource("demo");
+        setFetchMeta(`Supabase fetch failed: ${error.message}. Showing demo history.`);
+        setReviews(demoHistory);
+        return;
+      }
+
+      if (!data?.length) {
+        setDataSource("supabase");
+        setFetchMeta("Signed in successfully. Supabase returned 0 review rows for this user.");
+        setReviews([]);
+        return;
+      }
+
+      setDataSource("supabase");
+      setFetchMeta(`Signed in successfully. Loaded ${data.length} review row(s) from Supabase.`);
+      setReviews(data);
     }
 
     boot();
@@ -130,6 +155,18 @@ export function JournalDashboard() {
       title="Review history and journal"
       description="This is where the product gets sticky. You start seeing what kind of trade you should block, not just what kind of trade you should take."
     >
+      <div className="mb-6 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${dataSource === "supabase" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+            Data source: {dataSource}
+          </span>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+            User: {userId ?? "not signed in"}
+          </span>
+        </div>
+        <div className="mt-2 text-sm text-slate-700">{fetchMeta}</div>
+      </div>
+
       {sourceFilter ? (
         <div className="mb-6 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
           Showing only reviews from source: <strong>{sourceFilter}</strong>. <Link href="/journal" className="font-semibold underline">Clear filter</Link>
@@ -163,6 +200,11 @@ export function JournalDashboard() {
             <div className="text-sm text-slate-600">{status}</div>
           </div>
           <div className="mt-4 space-y-4">
+            {!filteredReviews.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+                No reviews found for the current filter.
+              </div>
+            ) : null}
             {filteredReviews.map((review) => (
               <div key={review.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
