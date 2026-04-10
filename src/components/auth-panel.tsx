@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase-browser";
 
@@ -62,18 +63,28 @@ export function AuthPanel() {
       <p className="mt-2 text-sm leading-6 text-slate-600">{message}</p>
 
       {userEmail ? (
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4">
-          <div>
-            <div className="text-sm text-slate-500">Signed in as</div>
-            <div className="font-semibold text-slate-950">{userEmail}</div>
+        <div className="mt-4 space-y-3 rounded-2xl bg-slate-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm text-slate-500">Signed in as</div>
+              <div className="font-semibold text-slate-950">{userEmail}</div>
+            </div>
+            <button
+              type="button"
+              onClick={signOut}
+              className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Sign out
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            Sign out
-          </button>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link href="/review" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:border-slate-300">
+              Open review flow
+            </Link>
+            <Link href="/integration" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:border-slate-300">
+              Open integration setup
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="mt-4 space-y-3">

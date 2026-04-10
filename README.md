@@ -42,12 +42,14 @@ Open `http://localhost:3000`
 3. Fill in:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
    - `TRADINGVIEW_WEBHOOK_SECRET`
    - `NEXT_PUBLIC_APP_URL`
-4. Run the SQL in `supabase.sql` inside the Supabase SQL editor
-5. In Supabase Auth, enable Email provider / magic links
-6. Add your local and production redirect URLs in Supabase Auth settings
-7. Restart the dev server
+4. For a fresh project, run `supabase.sql` in the Supabase SQL editor
+5. For an existing project, run `supabase.migration.sql` after the original schema
+6. In Supabase Auth, enable Email provider / magic links
+7. Add your local and production redirect URLs in Supabase Auth settings
+8. Restart the dev server
 
 ## TradingView webhook
 
@@ -89,7 +91,7 @@ So initial live deployment can still be close to ₹0/month if free tiers are en
 2. Configure env vars
 3. Sign in with magic link
 4. Let the app create your profile row
-5. In Supabase, copy your `tradingview_webhook_token` from `profiles`
+5. Open `/integration` and copy your `tradingview_webhook_token`
 6. Put that token into your TradingView alert payload
 7. Send a test alert to `/api/tradingview/webhook`
 8. Check `/journal?source=tradingview-webhook`

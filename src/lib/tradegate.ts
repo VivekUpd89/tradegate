@@ -63,6 +63,8 @@ export type PersistedReview = {
   guardrails?: string[];
   checklist_score?: number;
   execution_readiness?: number;
+  override_reason?: string | null;
+  override_executed?: boolean | null;
   summary: string;
   outcome?: string | null;
   journal_note?: string | null;
@@ -401,6 +403,8 @@ export const demoHistory: PersistedReview[] = [
     ],
     checklist_score: 87,
     execution_readiness: 82,
+    override_reason: null,
+    override_executed: false,
     summary: "Trade is reasonably aligned with the playbook. Execute only if sizing is still within your daily risk limits.",
     outcome: "Win",
     journal_note: "Felt clean. Followed plan. No impulse sizing.",
@@ -437,6 +441,8 @@ export const demoHistory: PersistedReview[] = [
     guardrails: [],
     checklist_score: 41,
     execution_readiness: 44,
+    override_reason: "Almost chased the first candle. Block was useful.",
+    override_executed: false,
     summary: "This looks like a low-discipline entry. Slow down. Rebuild the setup before risking capital.",
     outcome: "Skipped",
     journal_note: "Good block. I was chasing.",

@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { AuthPanel } from "@/components/auth-panel";
+import { ConfigDiagnostics } from "@/components/config-diagnostics";
 import { demoHistory, strategies } from "@/lib/tradegate";
 
 export function TradegateDashboard() {
   const totalReviews = demoHistory.length;
   const passRate = Math.round((demoHistory.filter((review) => review.verdict === "PASS").length / totalReviews) * 100);
   const blocked = demoHistory.filter((review) => review.verdict === "FAIL").length;
+  const browserSupabaseConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
   return (
     <AppShell
       title="Execution discipline dashboard"
       description="A multi-page MVP for traders who want a deliberate checkpoint between impulse and order entry."
     >
+      <ConfigDiagnostics browserSupabaseConfigured={browserSupabaseConfigured} appUrl={appUrl} />
+
       <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="rounded-3xl border border-white/50 bg-[#0f172a] p-8 text-white shadow-2xl shadow-slate-950/10">
           <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">

@@ -108,7 +108,12 @@ export function JournalDashboard() {
 
     const { error } = await supabase
       .from("reviews")
-      .update({ outcome: patch.outcome, journal_note: patch.journal_note })
+      .update({
+        outcome: patch.outcome,
+        journal_note: patch.journal_note,
+        override_reason: patch.override_reason,
+        override_executed: patch.override_executed
+      })
       .eq("id", reviewId)
       .eq("user_id", userId);
 
@@ -205,6 +210,26 @@ export function JournalDashboard() {
                     <option>Breakeven</option>
                   </select>
                 </div>
+                {review.verdict !== "PASS" ? (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-slate-700">
+                    <label className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(review.override_executed)}
+                        onChange={(event) => updateReview(review.id, { override_executed: event.target.checked })}
+                        className="mt-1"
+                      />
+                      <span>I overrode the gate and took this trade anyway.</span>
+                    </label>
+                    <textarea
+                      value={review.override_reason ?? ""}
+                      onChange={(event) => updateReview(review.id, { override_reason: event.target.value })}
+                      rows={2}
+                      className="mt-3 w-full rounded-xl border border-amber-200 bg-white p-3 text-sm text-slate-700 outline-none focus:border-slate-900"
+                      placeholder="Why did you override the gate?"
+                    />
+                  </div>
+                ) : null}
                 <textarea
                   value={review.journal_note ?? ""}
                   onChange={(event) => updateReview(review.id, { journal_note: event.target.value })}

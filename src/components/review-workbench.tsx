@@ -92,6 +92,8 @@ export function ReviewWorkbench() {
   const [isSaving, setIsSaving] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [overrideIntent, setOverrideIntent] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -159,6 +161,12 @@ export function ReviewWorkbench() {
     }
 
     setIsSaving(true);
+    if (result.verdict !== "PASS" && overrideIntent && overrideReason.trim().length < 12) {
+      setSaveMessage("If you want to override a WARN/FAIL, write a real reason first.");
+      setIsSaving(false);
+      return;
+    }
+
     const payload = {
       user_id: userId,
       strategy_id: activeStrategy?.id ?? null,
@@ -183,6 +191,8 @@ export function ReviewWorkbench() {
       checklist_hits: result.checklistHits,
       checklist_misses: result.checklistMisses,
       guardrails: result.guardrails,
+      override_reason: result.verdict === "PASS" ? null : overrideReason.trim() || null,
+      override_executed: result.verdict === "PASS" ? false : overrideIntent,
       summary: result.summary,
       source: "manual"
     };
@@ -195,7 +205,13 @@ export function ReviewWorkbench() {
       return;
     }
 
-    setSaveMessage("Review saved to your account.");
+    setSaveMessage(
+      result.verdict === "PASS"
+        ? "Review saved to your account."
+        : overrideIntent
+          ? "Review saved with an override note."
+          : "Review saved. Trade remains blocked/review-flagged unless you consciously override it."
+    );
   };
 
   return (
@@ -382,30 +398,58 @@ export function ReviewWorkbench() {
             />
           </label>
 
-          <div className="mt-6 grid gap-4 rounded-2xl bg-slate-50 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-            <div>
-              <div className="font-semibold text-slate-900">Persistence</div>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{saveMessage}</p>
+          <div className="mt-6 space-y-4 rounded-2xl bg-slate-50 p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="font-semibold text-slate-900">Persistence</div>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{saveMessage}</p>
+              </div>
+              <button
+                type="button"
+                className={classNames(
+                  "rounded-2xl px-5 py-3 text-sm font-semibold transition",
+                  result.verdict === "PASS" && "bg-emerald-600 text-white hover:bg-emerald-500",
+                  result.verdict === "WARN" && "bg-amber-500 text-slate-950 hover:bg-amber-400",
+                  result.verdict === "FAIL" && "bg-rose-600 text-white hover:bg-rose-500"
+                )}
+              >
+                {result.verdict === "PASS" ? "Order Eligible" : result.verdict === "WARN" ? "Review Before Sending" : "Blocked by Gate"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={saveReview}
-              disabled={isSaving}
-              className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-            >
-              {isSaving ? "Saving..." : "Save review"}
-            </button>
-            <button
-              type="button"
-              className={classNames(
-                "rounded-2xl px-5 py-3 text-sm font-semibold transition",
-                result.verdict === "PASS" && "bg-emerald-600 text-white hover:bg-emerald-500",
-                result.verdict === "WARN" && "bg-amber-500 text-slate-950 hover:bg-amber-400",
-                result.verdict === "FAIL" && "bg-rose-600 text-white hover:bg-rose-500"
-              )}
-            >
-              {result.verdict === "PASS" ? "Order Eligible" : result.verdict === "WARN" ? "Review Before Sending" : "Blocked by Gate"}
-            </button>
+
+            {result.verdict !== "PASS" ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <label className="flex items-start gap-3 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={overrideIntent}
+                    onChange={(event) => setOverrideIntent(event.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    I still want to take this trade and record an override decision.
+                  </span>
+                </label>
+                <textarea
+                  value={overrideReason}
+                  onChange={(event) => setOverrideReason(event.target.value)}
+                  rows={3}
+                  className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm outline-none focus:border-slate-900"
+                  placeholder="If overriding, explain why this trade deserves an exception."
+                />
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={saveReview}
+                disabled={isSaving}
+                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : result.verdict === "PASS" ? "Save review" : overrideIntent ? "Save override decision" : "Save blocked review"}
+              </button>
+            </div>
           </div>
         </div>
       </section>

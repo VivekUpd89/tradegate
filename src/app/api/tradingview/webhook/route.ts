@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { reviewTrade, strategies, type ReviewInput } from "@/lib/tradegate";
 
 type TradingViewPayload = {
@@ -29,9 +29,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Missing user webhook token" }, { status: 400 });
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Supabase admin client not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local" },
+      { status: 500 }
+    );
   }
 
   const { data: profile } = await supabase

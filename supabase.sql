@@ -49,6 +49,8 @@ create table if not exists reviews (
   guardrails jsonb not null default '[]'::jsonb,
   checklist_score int not null default 0,
   execution_readiness int not null default 0,
+  override_reason text,
+  override_executed boolean not null default false,
   summary text not null,
   outcome text,
   journal_note text,
