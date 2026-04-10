@@ -17,6 +17,8 @@ export function IntegrationGuide() {
       : "Supabase not configured yet. Integration is currently in demo mode."
   );
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [testStatus, setTestStatus] = useState("Run a live test to verify the webhook inserts into your journal.");
+  const [isTesting, setIsTesting] = useState(false);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
 
   useEffect(() => {
@@ -68,6 +70,59 @@ export function IntegrationGuide() {
   }, []);
 
   const webhookUrl = `${appUrl.replace(/\/$/, "")}/api/tradingview/webhook`;
+
+  async function runLiveWebhookTest() {
+    if (!profile?.tradingview_webhook_token) {
+      setTestStatus("Sign in first so the app knows which profile token to test.");
+      return;
+    }
+
+    const secret = window.prompt("Enter the current TRADINGVIEW_WEBHOOK_SECRET configured in Vercel:");
+    if (!secret) {
+      setTestStatus("Live test cancelled. No secret was provided.");
+      return;
+    }
+
+    setIsTesting(true);
+    setTestStatus("Sending live webhook test...");
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          secret,
+          token: profile.tradingview_webhook_token,
+          symbol: "NIFTY",
+          direction: "Long",
+          entry: 22450,
+          stopLoss: 22420,
+          target: 22520,
+          strategySlug: "breakout-pullback",
+          thesis: "Integration page live webhook test.",
+          marketContext: "Manual in-app webhook verification.",
+          emotions: ["Calm"],
+          confidence: 60
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setTestStatus(`Webhook test failed (${response.status}): ${data.error ?? "Unknown error"}`);
+        setIsTesting(false);
+        return;
+      }
+
+      setTestStatus(`Webhook test passed: ${data.summary}`);
+    } catch (error) {
+      setTestStatus(`Webhook test failed before completion: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+
+    setIsTesting(false);
+  }
+
   const samplePayload = `{
   "secret": "your-shared-secret",
   "token": "${profile?.tradingview_webhook_token ?? "sign-in-to-see-token"}",
@@ -128,7 +183,16 @@ export function IntegrationGuide() {
               <Link href="/journal?source=tradingview-webhook" className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">
                 Open imported alerts
               </Link>
+              <button
+                type="button"
+                onClick={runLiveWebhookTest}
+                disabled={isTesting || !profile?.tradingview_webhook_token}
+                className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isTesting ? "Testing..." : "Send live test webhook"}
+              </button>
             </div>
+            <div className="rounded-2xl bg-white/5 p-4 text-sm text-slate-300">{testStatus}</div>
           </div>
         </div>
       </section>
