@@ -5,6 +5,13 @@ import { AppShell } from "@/components/app-shell";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { reviewTrade, strategies, type ReviewInput, type Strategy } from "@/lib/tradegate";
 
+function normalizeStrategyId(strategyId?: string | null) {
+  if (!strategyId) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(strategyId)
+    ? strategyId
+    : null;
+}
+
 const emotionOptions = ["Calm", "Confident", "Fear", "FOMO", "Revenge", "Tired"];
 
 const initialInput: ReviewInput = {
@@ -169,7 +176,7 @@ export function ReviewWorkbench() {
 
     const payload = {
       user_id: userId,
-      strategy_id: activeStrategy?.id ?? null,
+      strategy_id: normalizeStrategyId(activeStrategy?.id),
       strategy_slug: activeStrategy?.slug ?? null,
       symbol: input.symbol,
       direction: input.direction,

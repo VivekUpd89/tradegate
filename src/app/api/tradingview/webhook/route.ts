@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { reviewTrade, strategies, type ReviewInput } from "@/lib/tradegate";
 
+function normalizeStrategyId(strategyId?: string | null) {
+  if (!strategyId) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(strategyId)
+    ? strategyId
+    : null;
+}
+
 type TradingViewPayload = {
   secret?: string;
   token?: string;
@@ -129,7 +136,7 @@ export async function POST(request: NextRequest) {
 
   const { error: insertError } = await supabase.from("reviews").insert({
     user_id: profile.id,
-    strategy_id: strategy.id,
+    strategy_id: normalizeStrategyId(strategy.id),
     strategy_slug: strategy.slug,
     symbol: input.symbol,
     direction: input.direction,
